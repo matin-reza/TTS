@@ -227,7 +227,7 @@ class TTSDataset(Dataset):
         return waveform
 
     def get_phonemes(self, idx, text):
-        phoneme_text  = PersianG2Pconverter.transliterate('سلامتی نسل غیور جامانده', tidy = False)
+        phoneme_text  = PersianG2Pconverter.transliterate(text, tidy = False)
 
         out_dict = {
             "text": text,
