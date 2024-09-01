@@ -22,6 +22,16 @@ torch.multiprocessing.set_sharing_strategy("file_system")
 
 PersianG2Pconverter = Persian_g2p_converter(use_large = True)
 
+self.phoneme_to_id = {
+    "a": 1, "b": 2, "c": 3, "d": 4, "e": 5, "f": 6, "g": 7, "h": 8, "i": 9, "j": 10,
+    "k": 11, "l": 12, "m": 13, "n": 14, "o": 15, "p": 16, "q": 17, "r": 18, "s": 19, "t": 20,
+    "u": 21, "v": 22, "w": 23, "x": 24, "y": 25, "z": 26,
+    "A": 27, "B": 28, "C": 29, "D": 30, "E": 31, "F": 32, "G": 33, "H": 34, "I": 35, "J": 36,
+    "K": 37, "L": 38, "M": 39, "N": 40, "O": 41, "P": 42, "Q": 43, "R": 44, "S": 45, "T": 46,
+    "U": 47, "V": 48, "W": 49, "X": 50, "Y": 51, "Z": 52,
+    # Add more phonemes if needed
+}
+
 def _parse_sample(item):
     language_name = None
     attn_file = None
@@ -261,11 +271,16 @@ class TTSDataset(Dataset):
         return np.load(attn_file)
 
     def get_token_ids(self, idx, text):
-        if self.tokenizer.use_phonemes:
-            token_ids = self.get_phonemes(idx, text)["token_ids"]
-        else:
-            token_ids = self.tokenizer.text_to_ids(text)
+        phonemes = PersianG2Pconverter.transliterate(text, tidy = False)
+        # Convert phonemes to token IDs using the phoneme_to_id mapping
+        token_ids = [phoneme_to_id.get(phoneme, 0) for phoneme in phonemes.split()]
         return np.array(token_ids, dtype=np.int32)
+    #def get_token_ids(self, idx, text):
+    #    if self.tokenizer.use_phonemes:
+    #        token_ids = self.get_phonemes(idx, text)["token_ids"]
+    #    else:
+    #        token_ids = self.tokenizer.text_to_ids(text)
+    #    return np.array(token_ids, dtype=np.int32)
 
     def load_data(self, idx):
         item = self.samples[idx]
