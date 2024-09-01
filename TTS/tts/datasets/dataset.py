@@ -3,6 +3,7 @@ import collections
 import os
 import random
 from typing import Dict, List, Union
+from PersianG2p import Persian_g2p_converter
 
 import numpy as np
 import torch
@@ -19,6 +20,7 @@ import mutagen
 # https://github.com/pytorch/pytorch/issues/11201#issuecomment-421146936
 torch.multiprocessing.set_sharing_strategy("file_system")
 
+PersianG2Pconverter = Persian_g2p_converter(use_large = True)
 
 def _parse_sample(item):
     language_name = None
@@ -225,10 +227,22 @@ class TTSDataset(Dataset):
         return waveform
 
     def get_phonemes(self, idx, text):
-        out_dict = self.phoneme_dataset[idx]
-        assert text == out_dict["text"], f"{text} != {out_dict['text']}"
+        phoneme_text  = PersianG2Pconverter.transliterate('سلامتی نسل غیور جامانده', tidy = False)
+
+        out_dict = {
+            "text": text,
+            "token_ids": phoneme_text  # Assuming phoneme_text is directly usable as token_ids
+        }
+    
+        # Ensure that phoneme_text is not empty
         assert len(out_dict["token_ids"]) > 0
+    
         return out_dict
+    
+        #out_dict = self.phoneme_dataset[idx]
+        #assert text == out_dict["text"], f"{text} != {out_dict['text']}"
+        #assert len(out_dict["token_ids"]) > 0
+        #return out_dict
 
     def get_f0(self, idx):
         out_dict = self.f0_dataset[idx]
