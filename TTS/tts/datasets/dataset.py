@@ -238,10 +238,10 @@ class TTSDataset(Dataset):
 
     def get_phonemes(self, idx, text):
         phoneme_text  = PersianG2Pconverter.transliterate(text, tidy = False)
-
+        token_ids = [phoneme_to_id.get(phoneme, 0) for phoneme in phoneme_text.split()]
         out_dict = {
             "text": text,
-            "token_ids": phoneme_text  # Assuming phoneme_text is directly usable as token_ids
+            "token_ids": np.array(token_ids, dtype=np.int32)
         }
     
         # Ensure that phoneme_text is not empty
