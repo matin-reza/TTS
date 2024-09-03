@@ -10,7 +10,7 @@ class CustomPhonemizer(BasePhonemizer):
           super().__init__(self.language, punctuations=punctuations, keep_puncs=keep_puncs)
           self.converter = Persian_g2p_converter(True)
     
-     def phonemize(self, text):
+     def phonemize(self, text, separator="|", language=None):
           # Call the appropriate method from Persian_g2p_converter to perform phonemization
           # Use 'transliterate' if that's the method you want; adjust if necessary
           return self.converter.transliterate(text, tidy=False)  # Adjust method if necessary
@@ -24,7 +24,7 @@ class CustomPhonemizer(BasePhonemizer):
      def name():
           return "PersianG2P"
 
-     def _phonemize(self, text: str, separator: str = "", character: str = "hangeul") -> str:
+     def _phonemize(self, text: str, separator: str = "", character: str = "ff") -> str:
           ph = phonemize(text)
           return ph
      @staticmethod
