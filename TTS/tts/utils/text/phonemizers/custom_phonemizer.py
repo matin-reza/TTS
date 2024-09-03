@@ -28,7 +28,7 @@ class CustomPhonemizer(BasePhonemizer):
           ph = phonemize(text)
           return ph
      @staticmethod
-     def supported_languages() -> Dict:
+     def supported_languages():
           return {"fa": "persian"}          
 
 # Example usage
