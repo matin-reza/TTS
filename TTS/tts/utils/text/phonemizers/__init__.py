@@ -73,7 +73,7 @@ def get_phonemizer_by_name(name: str, **kwargs) -> BasePhonemizer:
         return BN_Phonemizer(**kwargs)
     if name == "be_phonemizer":
         return BEL_Phonemizer(**kwargs)
-    if name == "PersianG2P"
+    if name == "PersianG2P":
         return Persian_g2p_converter(use_large = True)
     raise ValueError(f"Phonemizer {name} not found")
 
