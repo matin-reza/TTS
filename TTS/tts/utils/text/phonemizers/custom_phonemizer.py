@@ -20,6 +20,16 @@ class CustomPhonemizer(BasePhonemizer):
 
      def is_available(self) -> bool:
           return True
+     @staticmethod
+     def name():
+          return "PersianG2P"
+
+     def _phonemize(self, text: str, separator: str = "", character: str = "hangeul") -> str:
+          ph = phonemize(text)
+          return ph
+     @staticmethod
+     def supported_languages() -> Dict:
+          return {"fa": "persian"}          
 
 # Example usage
 if __name__ == "__main__":
