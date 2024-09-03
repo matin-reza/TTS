@@ -3,7 +3,6 @@ import collections
 import os
 import random
 from typing import Dict, List, Union
-from PersianG2p import Persian_g2p_converter
 
 import numpy as np
 import torch
@@ -14,23 +13,10 @@ from TTS.tts.utils.data import prepare_data, prepare_stop_target, prepare_tensor
 from TTS.utils.audio import AudioProcessor
 from TTS.utils.audio.numpy_transforms import compute_energy as calculate_energy
 
-import mutagen
-
 # to prevent too many open files error as suggested here
 # https://github.com/pytorch/pytorch/issues/11201#issuecomment-421146936
 torch.multiprocessing.set_sharing_strategy("file_system")
 
-PersianG2Pconverter = Persian_g2p_converter(use_large = True)
-
-phoneme_to_id = {
-    "a": 1, "b": 2, "c": 3, "d": 4, "e": 5, "f": 6, "g": 7, "h": 8, "i": 9, "j": 10,
-    "k": 11, "l": 12, "m": 13, "n": 14, "o": 15, "p": 16, "q": 17, "r": 18, "s": 19, "t": 20,
-    "u": 21, "v": 22, "w": 23, "x": 24, "y": 25, "z": 26,
-    "A": 27, "B": 28, "C": 29, "D": 30, "E": 31, "F": 32, "G": 33, "H": 34, "I": 35, "J": 36,
-    "K": 37, "L": 38, "M": 39, "N": 40, "O": 41, "P": 42, "Q": 43, "R": 44, "S": 45, "T": 46,
-    "U": 47, "V": 48, "W": 49, "X": 50, "Y": 51, "Z": 52,
-    # Add more phonemes if needed
-}
 
 def _parse_sample(item):
     language_name = None
@@ -54,15 +40,6 @@ def string2filename(string):
     # generate a safe and reversible filename based on a string
     filename = base64.urlsafe_b64encode(string.encode("utf-8")).decode("utf-8", "ignore")
     return filename
-
-
-def get_audio_size(audiopath):
-    extension = audiopath.rpartition(".")[-1].lower()
-    if extension not in {"mp3", "wav", "flac"}:
-        raise RuntimeError(f"The audio format {extension} is not supported, please convert the audio files to mp3, flac, or wav format!")
-
-    audio_info = mutagen.File(audiopath).info
-    return int(audio_info.length * audio_info.sample_rate)
 
 
 class TTSDataset(Dataset):
@@ -199,7 +176,7 @@ class TTSDataset(Dataset):
         lens = []
         for item in self.samples:
             _, wav_file, *_ = _parse_sample(item)
-            audio_len = get_audio_size(wav_file)
+            audio_len = os.path.getsize(wav_file) / 16 * 8  # assuming 16bit audio
             lens.append(audio_len)
         return lens
 
@@ -237,22 +214,10 @@ class TTSDataset(Dataset):
         return waveform
 
     def get_phonemes(self, idx, text):
-        phoneme_text  = PersianG2Pconverter.transliterate(text, tidy = False)
-        token_ids = [phoneme_to_id.get(phoneme, 0) for phoneme in phoneme_text.split()]
-        out_dict = {
-            "text": text,
-            "token_ids": np.array(token_ids, dtype=np.int32)
-        }
-    
-        # Ensure that phoneme_text is not empty
+        out_dict = self.phoneme_dataset[idx]
+        assert text == out_dict["text"], f"{text} != {out_dict['text']}"
         assert len(out_dict["token_ids"]) > 0
-    
         return out_dict
-    
-        #out_dict = self.phoneme_dataset[idx]
-        #assert text == out_dict["text"], f"{text} != {out_dict['text']}"
-        #assert len(out_dict["token_ids"]) > 0
-        #return out_dict
 
     def get_f0(self, idx):
         out_dict = self.f0_dataset[idx]
@@ -271,16 +236,11 @@ class TTSDataset(Dataset):
         return np.load(attn_file)
 
     def get_token_ids(self, idx, text):
-        phonemes = PersianG2Pconverter.transliterate(text, tidy = False)
-        # Convert phonemes to token IDs using the phoneme_to_id mapping
-        token_ids = [phoneme_to_id.get(phoneme, 0) for phoneme in phonemes.split()]
+        if self.tokenizer.use_phonemes:
+            token_ids = self.get_phonemes(idx, text)["token_ids"]
+        else:
+            token_ids = self.tokenizer.text_to_ids(text)
         return np.array(token_ids, dtype=np.int32)
-    #def get_token_ids(self, idx, text):
-    #    if self.tokenizer.use_phonemes:
-    #        token_ids = self.get_phonemes(idx, text)["token_ids"]
-    #    else:
-    #        token_ids = self.tokenizer.text_to_ids(text)
-    #    return np.array(token_ids, dtype=np.int32)
 
     def load_data(self, idx):
         item = self.samples[idx]
@@ -335,7 +295,7 @@ class TTSDataset(Dataset):
     def _compute_lengths(samples):
         new_samples = []
         for item in samples:
-            audio_length = get_audio_size(item["audio_file"])
+            audio_length = os.path.getsize(item["audio_file"]) / 16 * 8  # assuming 16bit audio
             text_lenght = len(item["text"])
             item["audio_length"] = audio_length
             item["text_length"] = text_lenght
@@ -726,7 +686,6 @@ class F0Dataset:
         self,
         samples: Union[List[List], List[Dict]],
         ap: "AudioProcessor",
-        audio_config=None,  # pylint: disable=unused-argument
         verbose=False,
         cache_path: str = None,
         precompute_num_workers=0,
