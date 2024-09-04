@@ -215,6 +215,9 @@ class TTSDataset(Dataset):
 
     def get_phonemes(self, idx, text):
         out_dict = self.phoneme_dataset[idx]
+        print(f"{idx}:idx#########################")
+        print(f"{text}:text#########################")
+        print(f"{out_dict['token_ids']}:token_ids#########################")
         assert text == out_dict["text"], f"{text} != {out_dict['text']}"
         assert len(out_dict["token_ids"]) > 0
         return out_dict
